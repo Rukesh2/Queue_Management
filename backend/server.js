@@ -15,7 +15,10 @@ connectCloudinary()
 
 // middlewares
 app.use(express.json())
-app.use(cors())
+app.use(cors({
+  origin: ["https://queue-management-frontend-five.vercel.app/"],
+  credentials: true, // only if you’re using cookies or auth tokens
+}));
 
 // api endpoints
 app.use("/api/user", userRouter)
