@@ -14,11 +14,27 @@ connectDB()
 connectCloudinary()
 
 // middlewares
-app.use(express.json())
-app.use(cors({
-  origin: ["https://queue-management-frontend-five.vercel.app/"],
-  credentials: true, // only if you’re using cookies or auth tokens
+const allowedOrigins = [
+  "http://localhost:5173", // for local development
+  "https://queue-management-frontend-git-main-rukeshs-projects-b688506e.vercel.app" // your deployed frontend
+];
+
+app.use(
+  cors({
+    origin: allowedOrigins,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    credentials: true,
+  })
+);
+
+// ✅ Handle CORS preflight (OPTIONS) requests cleanly
+app.options("*", cors({
+  origin: allowedOrigins,
+  credentials: true,
 }));
+
+// after this:
+app.use(express.json());
 
 // api endpoints
 app.use("/api/user", userRouter)
