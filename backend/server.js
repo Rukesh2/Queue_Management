@@ -16,7 +16,8 @@ connectCloudinary()
 // middlewares
 const allowedOrigins = [
   "http://localhost:5173", // for local development
-  "https://queue-management-frontend-git-main-rukeshs-projects-b688506e.vercel.app" // your deployed frontend
+  "https://queue-management-admin.vercel.app/",
+  "https://queue-management-frontend-five.vercel.app/"// your deployed frontend
 ];
 
 app.use(
