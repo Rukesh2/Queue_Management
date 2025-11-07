@@ -15,68 +15,52 @@ const MyAppointments = () => {
 
     const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-    // Robust date formatter supporting:
-    // - underscore format: "7_11_2025" (D_M_YYYY)
-    // - ISO format: "2025-11-07" (YYYY-MM-DD)
-    // - full Date strings (fallback)
     const slotDateFormat = (slotDate) => {
         if (!slotDate) return ''
 
-        // If underscore format: D_M_YYYY or DD_M_YYYY etc.
         if (slotDate.includes('_')) {
             const parts = slotDate.split('_')
             const d = parts[0]
-            const m = Number(parts[1]) // month as number
+            const m = Number(parts[1])
             const y = parts[2]
             const monthName = months[m - 1] || ''
             return `${d} ${monthName} ${y}`
         }
 
-        // If ISO-like format: YYYY-MM-DD
         if (slotDate.includes('-')) {
             const parts = slotDate.split('-')
-            // defensive: ensure we have 3 parts and they are numeric-ish
             if (parts.length === 3) {
                 const y = parts[0]
                 const m = Number(parts[1])
                 const d = Number(parts[2])
                 const monthName = months[m - 1] || ''
-                // remove leading zeros from day
                 return `${d} ${monthName} ${y}`
             }
         }
 
-        // Fallback: try Date parsing
         const dt = new Date(slotDate)
         if (!isNaN(dt.getTime())) {
             return `${dt.getDate()} ${months[dt.getMonth()]} ${dt.getFullYear()}`
         }
 
-        // Last fallback: return raw value
         return slotDate
     }
 
-    // Safe address renderer: handles object or string
     const renderAddressLines = (address) => {
-        if (!address) return [ '', '' ]
-        // If address is a string, try splitting by newline or comma
+        if (!address) return ['', '']
         if (typeof address === 'string') {
             const parts = address.split('\n').map(p => p.trim()).filter(Boolean)
-            return [ parts[0] || '', parts[1] || '' ]
+            return [parts[0] || '', parts[1] || '']
         }
-        // If address is an array (unlikely) use first two entries
         if (Array.isArray(address)) {
             return [address[0] || '', address[1] || '']
         }
-        // Otherwise assume object with line1/line2
-        return [ address.line1 || '', address.line2 || '' ]
+        return [address.line1 || '', address.line2 || '']
     }
 
-    // Getting User Appointments Data Using API
     const getUserAppointments = async () => {
         try {
             const { data } = await axios.get(backendUrl + '/api/user/appointments', { headers: { token } })
-            // defensive: ensure appointments array exists
             const appts = Array.isArray(data.appointments) ? data.appointments : []
             setAppointments(appts.reverse())
         } catch (error) {
@@ -85,7 +69,6 @@ const MyAppointments = () => {
         }
     }
 
-    // Function to cancel appointment Using API
     const cancelAppointment = async (appointmentId) => {
         try {
             const { data } = await axios.post(backendUrl + '/api/user/cancel-appointment', { appointmentId }, { headers: { token } })
@@ -130,7 +113,6 @@ const MyAppointments = () => {
         rzp.open();
     };
 
-    // Function to make payment using razorpay
     const appointmentRazorpay = async (appointmentId) => {
         try {
             const { data } = await axios.post(backendUrl + '/api/user/payment-razorpay', { appointmentId }, { headers: { token } })
@@ -145,7 +127,6 @@ const MyAppointments = () => {
         }
     }
 
-    // Function to make payment using stripe
     const appointmentStripe = async (appointmentId) => {
         try {
             const { data } = await axios.post(backendUrl + '/api/user/payment-stripe', { appointmentId }, { headers: { token } })
@@ -168,78 +149,170 @@ const MyAppointments = () => {
     }, [token])
 
     return (
-        <div>
-            <p className='pb-3 mt-12 text-lg font-medium text-gray-600 border-b'>My appointments</p>
-            <div className=''>
-                {appointments.map((item, index) => {
-                    // defensive defaults for nested properties
-                    const docData = item.docData || {}
-                    const [addrLine1, addrLine2] = renderAddressLines(docData.address)
-                    const queuePosition = (item.queuePosition !== undefined && item.queuePosition !== null) ? item.queuePosition : 1
-                    const peopleAhead = (item.peopleAhead !== undefined && item.peopleAhead !== null) ? item.peopleAhead : 0
-                    const totalInSlot = (item.totalInSlot !== undefined && item.totalInSlot !== null) ? item.totalInSlot : 1
+        <div className='section-padding bg-light'>
+            <div className='container-custom'>
+                
+                {/* Page Header */}
+                <div className='mb-8'>
+                    <h1 className='text-3xl md:text-4xl font-bold text-dark mb-2'>My Appointments</h1>
+                    <p className='text-gray-custom'>View and manage your upcoming appointments</p>
+                </div>
 
-                    return (
-                        <div key={index} className='grid grid-cols-[1fr_2fr] gap-4 sm:flex sm:gap-6 py-4 border-b'>
-                            <div>
-                                <img className='w-36 bg-[#EAEFFF]' src={docData.image || assets.doctor_placeholder} alt={docData.name || 'doctor'} />
+                {/* Appointments List */}
+                <div className='space-y-6'>
+                    {appointments.length === 0 ? (
+                        <div className='card p-12 text-center'>
+                            <div className='w-20 h-20 bg-primary/10 rounded-full mx-auto mb-4 flex items-center justify-center'>
+                                <span className='text-4xl'>📅</span>
                             </div>
-                            <div className='flex-1 text-sm text-[#5E5E5E]'>
-                                <p className='text-[#262626] text-base font-semibold'>{docData.name || '—'}</p>
-                                <p>{docData.speciality || ''}</p>
-                                <p className='text-[#464646] font-medium mt-1'>Address:</p>
-                                <p className=''>{addrLine1}</p>
-                                <p className=''>{addrLine2}</p>
-                                <p className=' mt-1'>
-                                    <span className='text-sm text-[#3C3C3C] font-medium'>Date & Time:</span> {slotDateFormat(item.slotDate)} | {item.slotTime}
-                                </p>
+                            <h3 className='text-xl font-semibold text-dark mb-2'>No Appointments Yet</h3>
+                            <p className='text-gray-custom mb-6'>Book your first appointment to get started</p>
+                            <button onClick={() => navigate('/doctors')} className='btn-primary'>
+                                Find Doctors
+                            </button>
+                        </div>
+                    ) : (
+                        appointments.map((item, index) => {
+                            const docData = item.docData || {}
+                            const [addrLine1, addrLine2] = renderAddressLines(docData.address)
+                            const queuePosition = (item.queuePosition !== undefined && item.queuePosition !== null) ? item.queuePosition : 1
+                            const peopleAhead = (item.peopleAhead !== undefined && item.peopleAhead !== null) ? item.peopleAhead : 0
+                            const totalInSlot = (item.totalInSlot !== undefined && item.totalInSlot !== null) ? item.totalInSlot : 1
 
-                                {/* Queue Position Information */}
-                                {!item.cancelled && !item.isCompleted && (
-                                    <div className='mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200'>
-                                        <p className='text-sm font-semibold text-blue-900 mb-2'>Queue Information</p>
-                                        <div className='flex gap-4 text-xs'>
-                                            <div>
-                                                <p className='text-gray-600'>Your Position:</p>
-                                                <p className='font-bold text-blue-700 text-lg'>{queuePosition}</p>
+                            return (
+                                <div key={index} className='card overflow-hidden'>
+                                    <div className='flex flex-col lg:flex-row'>
+                                        
+                                        {/* Doctor Image */}
+                                        <div className='lg:w-64 flex-shrink-0'>
+                                            <img 
+                                                className='w-full h-64 lg:h-full object-cover' 
+                                                src={docData.image || assets.doctor_placeholder} 
+                                                alt={docData.name || 'doctor'} 
+                                            />
+                                        </div>
+
+                                        {/* Appointment Details */}
+                                        <div className='flex-1 p-6 lg:p-8'>
+                                            <div className='flex flex-col lg:flex-row lg:items-start lg:justify-between mb-4'>
+                                                <div>
+                                                    <h3 className='text-2xl font-bold text-dark mb-2'>{docData.name || '—'}</h3>
+                                                    <p className='text-primary font-semibold mb-3'>{docData.speciality || ''}</p>
+                                                    
+                                                    {/* Address */}
+                                                    <div className='text-sm text-gray-custom mb-4'>
+                                                        <p className='font-semibold text-dark mb-1'>📍 Clinic Address:</p>
+                                                        <p>{addrLine1}</p>
+                                                        <p>{addrLine2}</p>
+                                                    </div>
+
+                                                    {/* Date & Time */}
+                                                    <div className='inline-block bg-accent/10 px-4 py-2 rounded-button'>
+                                                        <p className='text-sm'>
+                                                            <span className='font-semibold text-dark'>📅 </span>
+                                                            {slotDateFormat(item.slotDate)} at {item.slotTime}
+                                                        </p>
+                                                    </div>
+                                                </div>
+
+                                                {/* Status Badge */}
+                                                <div>
+                                                    {item.isCompleted && (
+                                                        <span className='inline-block bg-success/10 text-success px-4 py-2 rounded-button font-semibold border-2 border-success/20'>
+                                                            ✓ Completed
+                                                        </span>
+                                                    )}
+                                                    {item.cancelled && !item.isCompleted && (
+                                                        <span className='inline-block bg-secondary/10 text-secondary px-4 py-2 rounded-button font-semibold border-2 border-secondary/20'>
+                                                            ✕ Cancelled
+                                                        </span>
+                                                    )}
+                                                    {!item.cancelled && item.payment && !item.isCompleted && (
+                                                        <span className='inline-block bg-primary/10 text-primary px-4 py-2 rounded-button font-semibold border-2 border-primary/20'>
+                                                            ✓ Paid
+                                                        </span>
+                                                    )}
+                                                </div>
                                             </div>
-                                            <div>
-                                                <p className='text-gray-600'>People Ahead:</p>
-                                                <p className='font-bold text-orange-600 text-lg'>{peopleAhead}</p>
-                                            </div>
-                                            <div>
-                                                <p className='text-gray-600'>Total in Slot:</p>
-                                                <p className='font-bold text-green-600 text-lg'>{totalInSlot}/10</p>
+
+                                            {/* Queue Information */}
+                                            {!item.cancelled && !item.isCompleted && (
+                                                <div className='bg-gradient-to-r from-primary/5 to-accent/5 rounded-button p-5 mb-4 border-l-4 border-primary'>
+                                                    <h4 className='font-bold text-dark mb-3 flex items-center gap-2'>
+                                                        <span className='text-xl'>📊</span>
+                                                        Queue Information
+                                                    </h4>
+                                                    <div className='grid grid-cols-3 gap-4 text-center'>
+                                                        <div>
+                                                            <p className='text-3xl font-bold text-primary mb-1'>{queuePosition}</p>
+                                                            <p className='text-xs text-gray-custom'>Your Position</p>
+                                                        </div>
+                                                        <div>
+                                                            <p className='text-3xl font-bold text-warning mb-1'>{peopleAhead}</p>
+                                                            <p className='text-xs text-gray-custom'>People Ahead</p>
+                                                        </div>
+                                                        <div>
+                                                            <p className='text-3xl font-bold text-success mb-1'>{totalInSlot}/10</p>
+                                                            <p className='text-xs text-gray-custom'>Total in Slot</p>
+                                                        </div>
+                                                    </div>
+                                                    {queuePosition === 1 && (
+                                                        <p className='mt-3 text-sm text-success font-semibold text-center'>
+                                                            ✓ You're first in line!
+                                                        </p>
+                                                    )}
+                                                    {peopleAhead > 0 && (
+                                                        <p className='mt-3 text-sm text-gray-custom text-center'>
+                                                            ⏱️ {peopleAhead} {peopleAhead === 1 ? 'person' : 'people'} ahead of you
+                                                        </p>
+                                                    )}
+                                                </div>
+                                            )}
+
+                                            {/* Action Buttons */}
+                                            <div className='flex flex-wrap gap-3'>
+                                                {!item.cancelled && !item.payment && !item.isCompleted && payment !== item._id && (
+                                                    <button 
+                                                        onClick={() => setPayment(item._id)} 
+                                                        className='btn-primary'
+                                                    >
+                                                        Pay Online
+                                                    </button>
+                                                )}
+                                                
+                                                {!item.cancelled && !item.payment && !item.isCompleted && payment === item._id && (
+                                                    <>
+                                                        <button 
+                                                            onClick={() => appointmentStripe(item._id)} 
+                                                            className='btn-outline flex items-center gap-2'
+                                                        >
+                                                            <img className='h-5' src={assets.stripe_logo} alt='Stripe' />
+                                                        </button>
+                                                        <button 
+                                                            onClick={() => appointmentRazorpay(item._id)} 
+                                                            className='btn-outline flex items-center gap-2'
+                                                        >
+                                                            <img className='h-5' src={assets.razorpay_logo} alt='Razorpay' />
+                                                        </button>
+                                                    </>
+                                                )}
+
+                                                {!item.cancelled && !item.isCompleted && (
+                                                    <button 
+                                                        onClick={() => cancelAppointment(item._id)} 
+                                                        className='btn-outline !border-secondary !text-secondary hover:!bg-secondary hover:!text-white'
+                                                    >
+                                                        Cancel Appointment
+                                                    </button>
+                                                )}
                                             </div>
                                         </div>
-                                        {peopleAhead > 0 && (
-                                            <p className='mt-2 text-xs text-gray-600'>
-                                                ⏱️ Please arrive on time. {peopleAhead} {peopleAhead === 1 ? 'person' : 'people'} will be seen before you.
-                                            </p>
-                                        )}
-                                        {queuePosition === 1 && (
-                                            <p className='mt-2 text-xs text-green-700 font-medium'>
-                                                ✓ You're first in line for this slot!
-                                            </p>
-                                        )}
                                     </div>
-                                )}
-                            </div>
-                            <div></div>
-                            <div className='flex flex-col gap-2 justify-end text-sm text-center'>
-                                {!item.cancelled && !item.payment && !item.isCompleted && payment !== item._id && <button onClick={() => setPayment(item._id)} className='text-[#696969] sm:min-w-48 py-2 border rounded hover:bg-primary hover:text-white transition-all duration-300'>Pay Online</button>}
-                                {!item.cancelled && !item.payment && !item.isCompleted && payment === item._id && <button onClick={() => appointmentStripe(item._id)} className='text-[#696969] sm:min-w-48 py-2 border rounded hover:bg-gray-100 hover:text-white transition-all duration-300 flex items-center justify-center'><img className='max-w-20 max-h-5' src={assets.stripe_logo} alt="" /></button>}
-                                {!item.cancelled && !item.payment && !item.isCompleted && payment === item._id && <button onClick={() => appointmentRazorpay(item._id)} className='text-[#696969] sm:min-w-48 py-2 border rounded hover:bg-gray-100 hover:text-white transition-all duration-300 flex items-center justify-center'><img className='max-w-20 max-h-5' src={assets.razorpay_logo} alt="" /></button>}
-                                {!item.cancelled && item.payment && !item.isCompleted && <button className='sm:min-w-48 py-2 border rounded text-[#696969]  bg-[#EAEFFF]'>Paid</button>}
-
-                                {item.isCompleted && <button className='sm:min-w-48 py-2 border border-green-500 rounded text-green-500'>Completed</button>}
-
-                                {!item.cancelled && !item.isCompleted && <button onClick={() => cancelAppointment(item._id)} className='text-[#696969] sm:min-w-48 py-2 border rounded hover:bg-red-600 hover:text-white transition-all duration-300'>Cancel appointment</button>}
-                                {item.cancelled && !item.isCompleted && <button className='sm:min-w-48 py-2 border border-red-500 rounded text-red-500'>Appointment cancelled</button>}
-                            </div>
-                        </div>
-                    )
-                })}
+                                </div>
+                            )
+                        })
+                    )}
+                </div>
             </div>
         </div>
     )
