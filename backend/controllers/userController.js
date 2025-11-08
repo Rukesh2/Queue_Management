@@ -15,6 +15,11 @@ const razorpayInstance = new razorpay({
     key_secret: process.env.RAZORPAY_KEY_SECRET,
 })
 
+// Constants for queue management
+const MAX_APPOINTMENTS_PER_SLOT = 5
+const APPOINTMENT_DURATION_MINUTES = 12
+const STAGGER_INTERVAL_MINUTES = 12
+
 // API to register user
 const registerUser = async (req, res) => {
 
@@ -154,13 +159,59 @@ const isValidSlotTime = (slotTime) => {
     return validSlots.includes(slotTime)
 }
 
+// Helper function to calculate estimated appointment time
+const calculateEstimatedTime = (slotTime, position) => {
+    // Parse slot time
+    const [time, modifier] = slotTime.split(' ')
+    let [hours, minutes] = time.split(':').map(Number)
+    
+    // Convert to 24-hour format
+    if (modifier === 'PM' && hours !== 12) hours += 12
+    if (modifier === 'AM' && hours === 12) hours = 0
+    
+    // Add stagger time based on position (position - 1) * interval
+    const addMinutes = (position - 1) * APPOINTMENT_DURATION_MINUTES
+    minutes += addMinutes
+    hours += Math.floor(minutes / 60)
+    minutes = minutes % 60
+    
+    // Format back to 12-hour format
+    const estimatedModifier = hours >= 12 ? 'PM' : 'AM'
+    const estimatedHours = hours > 12 ? hours - 12 : (hours === 0 ? 12 : hours)
+    
+    return `${estimatedHours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')} ${estimatedModifier}`
+}
+
+// Helper function to calculate suggested arrival time (10 minutes before estimated time)
+const calculateSuggestedArrival = (estimatedTime) => {
+    const [time, modifier] = estimatedTime.split(' ')
+    let [hours, minutes] = time.split(':').map(Number)
+    
+    // Convert to 24-hour format
+    if (modifier === 'PM' && hours !== 12) hours += 12
+    if (modifier === 'AM' && hours === 12) hours = 0
+    
+    // Subtract 10 minutes
+    minutes -= 10
+    if (minutes < 0) {
+        minutes += 60
+        hours -= 1
+        if (hours < 0) hours = 23
+    }
+    
+    // Format back to 12-hour format
+    const arrivalModifier = hours >= 12 ? 'PM' : 'AM'
+    const arrivalHours = hours > 12 ? hours - 12 : (hours === 0 ? 12 : hours)
+    
+    return `${arrivalHours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')} ${arrivalModifier}`
+}
+
 // API to book appointment 
 const bookAppointment = async (req, res) => {
 
     try {
 
         const { userId, docId, slotDate, slotTime } = req.body
-        console.log(req.body)
 
         // Validate booking date (within 30 days)
         if (!isValidBookingDate(slotDate)) {
@@ -196,15 +247,22 @@ const bookAppointment = async (req, res) => {
             slots_booked[slotDate][slotTime] = []
         }
 
-        // Check if slot is full (max 10 people per slot)
-        if (slots_booked[slotDate][slotTime].length >= 10) {
+        // Check if slot is full (max 5 people per slot)
+        if (slots_booked[slotDate][slotTime].length >= MAX_APPOINTMENTS_PER_SLOT) {
             return res.json({ 
                 success: false, 
-                message: 'Slot is full. Maximum 10 appointments per slot.' 
+                message: `Slot is full. Maximum ${MAX_APPOINTMENTS_PER_SLOT} appointments per slot.` 
             })
         }
 
         const userData = await userModel.findById(userId).select("-password")
+
+        // Calculate position in queue (will be the next position)
+        const queuePosition = slots_booked[slotDate][slotTime].length + 1
+
+        // Calculate estimated appointment time and suggested arrival
+        const estimatedTime = calculateEstimatedTime(slotTime, queuePosition)
+        const suggestedArrival = calculateSuggestedArrival(estimatedTime)
 
         // Create appointment data
         const appointmentData = {
@@ -225,6 +283,8 @@ const bookAppointment = async (req, res) => {
             amount: docData.fees,
             slotTime,
             slotDate,
+            estimatedTime,
+            suggestedArrival,
             date: Date.now()
         }
 
@@ -240,8 +300,10 @@ const bookAppointment = async (req, res) => {
         res.json({ 
             success: true, 
             message: 'Appointment Booked',
-            queuePosition: slots_booked[slotDate][slotTime].length,
-            totalInSlot: slots_booked[slotDate][slotTime].length
+            queuePosition: queuePosition,
+            totalInSlot: slots_booked[slotDate][slotTime].length,
+            estimatedTime: estimatedTime,
+            suggestedArrival: suggestedArrival
         })
 
     } catch (error) {
@@ -322,17 +384,41 @@ const listAppointment = async (req, res) => {
                         appointment._doc.queuePosition = position !== -1 ? position + 1 : 1
                         appointment._doc.peopleAhead = position !== -1 ? position : 0
                         appointment._doc.totalInSlot = slotBookings.length
+                        
+                        // Calculate estimated time if not already stored
+                        if (!appointment.estimatedTime) {
+                            appointment._doc.estimatedTime = calculateEstimatedTime(
+                                appointment.slotTime, 
+                                position !== -1 ? position + 1 : 1
+                            )
+                        }
+                        
+                        // Calculate suggested arrival if not already stored
+                        if (!appointment.suggestedArrival) {
+                            appointment._doc.suggestedArrival = calculateSuggestedArrival(
+                                appointment._doc.estimatedTime || appointment.estimatedTime
+                            )
+                        }
                     } else {
                         // Default values if slot data not found
                         appointment._doc.queuePosition = 1
                         appointment._doc.peopleAhead = 0
                         appointment._doc.totalInSlot = 1
+                        
+                        if (!appointment.estimatedTime) {
+                            appointment._doc.estimatedTime = appointment.slotTime
+                        }
+                        if (!appointment.suggestedArrival) {
+                            appointment._doc.suggestedArrival = calculateSuggestedArrival(appointment.slotTime)
+                        }
                     }
                 } catch (err) {
                     console.log('Error calculating queue position:', err)
                     appointment._doc.queuePosition = 1
                     appointment._doc.peopleAhead = 0
                     appointment._doc.totalInSlot = 1
+                    appointment._doc.estimatedTime = appointment.slotTime
+                    appointment._doc.suggestedArrival = calculateSuggestedArrival(appointment.slotTime)
                 }
             }
         }
@@ -452,6 +538,46 @@ const verifyStripe = async (req, res) => {
     }
 
 }
+// API to update patient status (on-my-way, arrived, etc.)
+const updatePatientStatus = async (req, res) => {
+    try {
+        const { userId, appointmentId, status } = req.body
+
+        // Validate status
+        const validStatuses = ['waiting', 'on-my-way', 'arrived', 'in-consultation', 'completed']
+        if (!validStatuses.includes(status)) {
+            return res.json({ success: false, message: 'Invalid status' })
+        }
+
+        const appointmentData = await appointmentModel.findById(appointmentId)
+
+        // Verify appointment belongs to user
+        if (appointmentData.userId !== userId) {
+            return res.json({ success: false, message: 'Unauthorized action' })
+        }
+
+        // Update status
+        await appointmentModel.findByIdAndUpdate(appointmentId, {
+            patientStatus: status,
+            statusUpdatedAt: new Date()
+        })
+
+        const statusMessages = {
+            'on-my-way': 'Status updated: On my way',
+            'arrived': 'Status updated: Arrived at clinic',
+            'waiting': 'Status updated: Waiting'
+        }
+
+        res.json({ 
+            success: true, 
+            message: statusMessages[status] || 'Status updated successfully' 
+        })
+
+    } catch (error) {
+        console.log(error)
+        res.json({ success: false, message: error.message })
+    }
+}
 
 export {
     loginUser,
@@ -464,5 +590,6 @@ export {
     paymentRazorpay,
     verifyRazorpay,
     paymentStripe,
-    verifyStripe
+    verifyStripe,
+    updatePatientStatus
 }
