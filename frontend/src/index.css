@@ -1,23 +1,181 @@
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&display=swap');
+/* Import Modern Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Poppins:wght@400;500;600;700;800&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* Global Styles */
 * {
-    font-family: Outfit;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
 }
 
-.active hr {
-    @apply block
+body {
+    @apply bg-light text-dark antialiased;
+    scroll-behavior: smooth;
 }
 
-@media (max-width:740px) {
-    .active  p{
-       @apply text-white bg-primary
+/* Typography */
+h1, h2, h3, h4, h5, h6 {
+    font-family: 'Poppins', sans-serif;
+    @apply font-semibold text-dark;
+}
+
+h1 {
+    @apply text-4xl md:text-5xl lg:text-6xl;
+}
+
+h2 {
+    @apply text-3xl md:text-4xl lg:text-5xl;
+}
+
+h3 {
+    @apply text-2xl md:text-3xl;
+}
+
+p {
+    @apply text-gray-custom leading-relaxed;
+}
+
+/* Custom Components */
+@layer components {
+    
+    /* Button Styles */
+    .btn-primary {
+        @apply bg-primary text-white px-8 py-3 rounded-button font-medium 
+               shadow-button hover:bg-accent hover:shadow-card-hover 
+               transition-all duration-300 active:scale-95;
+    }
+    
+    .btn-secondary {
+        @apply bg-white text-primary border-2 border-primary px-8 py-3 
+               rounded-button font-medium hover:bg-primary hover:text-white 
+               transition-all duration-300 active:scale-95;
+    }
+    
+    .btn-outline {
+        @apply border-2 border-primary text-primary px-6 py-2.5 rounded-button 
+               font-medium hover:bg-primary hover:text-white transition-all duration-300;
+    }
+
+    /* Card Styles */
+    .card {
+        @apply bg-white rounded-card shadow-card hover:shadow-card-hover 
+               transition-all duration-300 overflow-hidden;
+    }
+    
+    .card-hover {
+        @apply transform hover:-translate-y-2 transition-all duration-300;
+    }
+
+    /* Input Styles */
+    .input-field {
+        @apply w-full px-4 py-3 border-2 border-gray-200 rounded-button 
+               focus:border-primary focus:outline-none focus:ring-2 
+               focus:ring-primary/20 transition-all duration-200;
+    }
+
+    /* Section Padding */
+    .section-padding {
+        @apply py-16 md:py-20 lg:py-24 px-4 md:px-8 lg:px-16;
+    }
+
+    /* Container */
+    .container-custom {
+        @apply max-w-7xl mx-auto px-4 md:px-6 lg:px-8;
+    }
+
+    /* Gradient Background */
+    .gradient-bg {
+        background: linear-gradient(135deg, #0B8376 0%, #4ECDC4 100%);
+    }
+    
+    .gradient-overlay {
+        background: linear-gradient(to bottom, rgba(11, 131, 118, 0.9), rgba(78, 205, 196, 0.8));
     }
 }
 
+/* Active Navigation State */
+.active hr {
+    @apply block;
+}
+
+@media (max-width:740px) {
+    .active p {
+       @apply text-white bg-primary rounded-full px-4 py-1.5;
+    }
+}
+
+/* Scrollbar Styling */
 ::-webkit-scrollbar {
-    @apply hidden
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    @apply bg-gray-100;
+}
+
+::-webkit-scrollbar-thumb {
+    @apply bg-primary rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    @apply bg-accent;
+}
+
+/* Smooth Animations */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.animate-fade-in-up {
+    animation: fadeInUp 0.6s ease-out forwards;
+}
+
+/* Loading Animation */
+.loading-spinner {
+    border: 3px solid rgba(11, 131, 118, 0.1);
+    border-top: 3px solid #0B8376;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Selection Color */
+::selection {
+    @apply bg-primary text-white;
+}
+
+::-moz-selection {
+    @apply bg-primary text-white;
+}
+
+/* Focus Visible */
+*:focus-visible {
+    @apply outline-2 outline-primary outline-offset-2;
+}
+
+/* Image Optimization */
+img {
+    @apply max-w-full h-auto;
+}
+
+/* Transition for all interactive elements */
+button, a, input, select, textarea {
+    @apply transition-all duration-300;
 }
