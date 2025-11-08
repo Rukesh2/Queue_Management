@@ -21,7 +21,7 @@ const Navbar = () => {
       <div className='container-custom flex items-center justify-between py-4'>
         {/* Logo */}
         <div onClick={() => navigate('/')} className='cursor-pointer transform hover:scale-105 transition-transform duration-300'>
-          <img className='w-40 md:w-44' src={assets.logo} alt="Logo" />
+          <img className='w-64 md:w-72 lg:w-80' src={assets.logo} alt="MediQueue Logo" />
         </div>
 
         {/* Desktop Navigation */}
@@ -86,7 +86,7 @@ const Navbar = () => {
           {/* Mobile Menu */}
           <div className={`md:hidden ${showMenu ? 'fixed w-full' : 'h-0 w-0'} right-0 top-0 bottom-0 z-50 overflow-hidden bg-white transition-all duration-300`}>
             <div className='flex items-center justify-between px-6 py-5 border-b border-gray-200'>
-              <img src={assets.logo} className='w-36' alt="Logo" />
+              <img src={assets.logo} className='w-44' alt="MediQueue Logo" />
               <button onClick={() => setShowMenu(false)} className='w-10 h-10 flex items-center justify-center rounded-full hover:bg-light transition-colors'>
                 <img src={assets.cross_icon} className='w-7' alt="Close" />
               </button>

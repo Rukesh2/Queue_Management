@@ -10,7 +10,7 @@ const Footer = () => {
           
           {/* Company Info */}
           <div className='lg:col-span-2'>
-            <img className='mb-5 w-40 brightness-0 invert' src={assets.logo} alt="Logo" />
+            <img className='w-64 md:w-72 lg:w-80 brightness-0 invert' src={assets.logo} alt="MediQueue Logo" />
             <p className='text-white/70 leading-relaxed mb-6 max-w-md'>
               Book appointments with trusted doctors, pay securely online, and skip the long waiting lines. MediQueue keeps you informed about your exact queue position so you always arrive just on time. Simple, fast, and reliable – because your health shouldn't wait.
             </p>
@@ -78,7 +78,7 @@ const Footer = () => {
               <li className='flex items-start gap-3'>
                 <span className='text-primary mt-1'>✉️</span>
                 <div>
-                  <p className='text-white/70'>prescripto@gmail.com</p>
+                  <p className='text-white/70'>mediqueue@gmail.com</p>
                   <p className='text-xs text-white/50'>24/7 Support</p>
                 </div>
               </li>
