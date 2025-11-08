@@ -24,7 +24,6 @@ const Appointment = () => {
         setDocInfo(doc || null)
     }
 
-    // Helper: check both ISO (YYYY-MM-DD) and underscore (D_M_YYYY) keys
     const getBookedCountFor = (slots_booked = {}, dateObj, slotTime) => {
         const year = dateObj.getFullYear()
         const month = (dateObj.getMonth() + 1).toString().padStart(2, '0')
@@ -42,13 +41,11 @@ const Appointment = () => {
         return bookedCount
     }
 
-    // Generate available slots: 9 AM - 7 PM, 1-hour intervals, max 5 people per slot, 30 days booking window
     const getAvailableSolts = () => {
         setDocSlots([])
 
         if (!docInfo) return
 
-        // Valid time slots (9 AM - 7 PM)
         const validSlots = [
             "09:00 AM", "10:00 AM", "11:00 AM", "12:00 PM",
             "01:00 PM", "02:00 PM", "03:00 PM", "04:00 PM",
@@ -58,7 +55,6 @@ const Appointment = () => {
         const today = new Date()
         const newDocSlots = []
 
-        // Generate slots for next 30 days
         for (let i = 0; i < 30; i++) {
             const currentDate = new Date(today)
             currentDate.setDate(today.getDate() + i)
@@ -67,11 +63,9 @@ const Appointment = () => {
             const timeSlots = []
 
             for (let slotTimeVal of validSlots) {
-                // Get booked count
                 const bookedCount = getBookedCountFor(docInfo.slots_booked || {}, currentDate, slotTimeVal)
-                const isSlotAvailable = bookedCount < 5
+                const isSlotAvailable = bookedCount < 10
 
-                // Only show slots for current day if time hasn't passed
                 if (i === 0) {
                     const now = new Date()
                     const [timePart, modifier] = slotTimeVal.split(' ')
@@ -99,7 +93,7 @@ const Appointment = () => {
                     timeSlots.push({
                         datetime: new Date(currentDate),
                         time: slotTimeVal,
-                        available: 5 - bookedCount
+                        available: 10 - bookedCount
                     })
                 }
             }
@@ -135,7 +129,6 @@ const Appointment = () => {
         const month = date.getMonth() + 1
         const year = date.getFullYear()
 
-        // Format date as YYYY-MM-DD (ISO)
         const slotDate = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`
 
         try {
@@ -148,7 +141,6 @@ const Appointment = () => {
             if (data.success) {
                 toast.success(data.message)
 
-                // Optimistic UI update
                 setDocSlots(prev => {
                     const clone = prev.map(daySlots => daySlots.map(slot => ({ ...slot })))
                     if (clone[slotIndex]) {
@@ -184,100 +176,174 @@ const Appointment = () => {
         } else {
             setDocSlots([])
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [docInfo])
 
     useEffect(() => {
         if (doctors && doctors.length > 0) {
             fetchDocInfo()
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [doctors, docId])
 
     return docInfo ? (
-        <div>
+        <div className='section-padding bg-light'>
+            <div className='container-custom'>
 
-            {/* ---------- Doctor Details ----------- */}
-            <div className='flex flex-col sm:flex-row gap-4'>
-                <div>
-                    <img className='bg-primary w-full sm:max-w-72 rounded-lg' src={docInfo.image} alt="" />
+                {/* Doctor Profile Card */}
+                <div className='card overflow-hidden mb-12'>
+                    <div className='flex flex-col lg:flex-row gap-8'>
+                        
+                        {/* Doctor Image */}
+                        <div className='lg:w-1/3'>
+                            <div className='relative overflow-hidden'>
+                                <img 
+                                    className='w-full h-full object-cover' 
+                                    src={docInfo.image} 
+                                    alt={docInfo.name} 
+                                />
+                                <div className='absolute inset-0 bg-gradient-to-t from-primary/20 to-transparent'></div>
+                            </div>
+                        </div>
+
+                        {/* Doctor Info */}
+                        <div className='flex-1 p-8 lg:p-10'>
+                            {/* Name & Verification */}
+                            <div className='flex items-start justify-between mb-4'>
+                                <div>
+                                    <h1 className='text-3xl md:text-4xl font-bold text-dark mb-2 flex items-center gap-3'>
+                                        {docInfo.name}
+                                        <img className='w-6 h-6' src={assets.verified_icon} alt="Verified" />
+                                    </h1>
+                                    <div className='flex flex-wrap items-center gap-3 text-gray-custom'>
+                                        <span className='font-semibold text-dark'>{docInfo.degree}</span>
+                                        <span>•</span>
+                                        <span className='text-primary font-semibold'>{docInfo.speciality}</span>
+                                        <span className='inline-block bg-accent/10 text-primary px-3 py-1 rounded-full text-sm font-semibold'>
+                                            {docInfo.experience}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* About Section */}
+                            <div className='mb-6'>
+                                <h3 className='flex items-center gap-2 text-lg font-bold text-dark mb-3'>
+                                    <img className='w-4' src={assets.info_icon} alt="Info" />
+                                    About Doctor
+                                </h3>
+                                <p className='text-gray-custom leading-relaxed'>
+                                    {docInfo.about}
+                                </p>
+                            </div>
+
+                            {/* Stats Grid */}
+                            <div className='grid grid-cols-2 md:grid-cols-4 gap-4 mb-6'>
+                                <div className='bg-light rounded-button p-4 text-center'>
+                                    <p className='text-2xl font-bold text-primary mb-1'>4.8★</p>
+                                    <p className='text-xs text-gray-custom'>Rating</p>
+                                </div>
+                                <div className='bg-light rounded-button p-4 text-center'>
+                                    <p className='text-2xl font-bold text-primary mb-1'>500+</p>
+                                    <p className='text-xs text-gray-custom'>Patients</p>
+                                </div>
+                                <div className='bg-light rounded-button p-4 text-center'>
+                                    <p className='text-2xl font-bold text-primary mb-1'>{docInfo.experience}</p>
+                                    <p className='text-xs text-gray-custom'>Experience</p>
+                                </div>
+                                <div className='bg-light rounded-button p-4 text-center'>
+                                    <p className='text-2xl font-bold text-primary mb-1'>24/7</p>
+                                    <p className='text-xs text-gray-custom'>Available</p>
+                                </div>
+                            </div>
+
+                            {/* Fee */}
+                            <div className='bg-gradient-to-r from-primary/5 to-accent/5 rounded-button p-4 border-l-4 border-primary'>
+                                <p className='text-gray-custom text-sm mb-1'>Consultation Fee</p>
+                                <p className='text-2xl font-bold text-dark'>
+                                    {currencySymbol}{docInfo.fees}
+                                    <span className='text-sm font-normal text-gray-custom ml-2'>per session</span>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
-                <div className='flex-1 border border-[#ADADAD] rounded-lg p-8 py-7 bg-white mx-2 sm:mx-0 mt-[-80px] sm:mt-0'>
-                    <p className='flex items-center gap-2 text-3xl font-medium text-gray-700'>
-                        {docInfo.name} 
-                        <img className='w-5' src={assets.verified_icon} alt="" />
+                {/* Booking Section */}
+                <div className='card p-8'>
+                    <h2 className='text-2xl font-bold text-dark mb-2'>Book Your Appointment</h2>
+                    <p className='text-gray-custom mb-6'>
+                        Select a date and time slot • Available for next 30 days • 9:00 AM - 7:00 PM • Max 10 people per slot
                     </p>
-                    <div className='flex items-center gap-2 mt-1 text-gray-600'>
-                        <p>{docInfo.degree} - {docInfo.speciality}</p>
-                        <button className='py-0.5 px-2 border text-xs rounded-full'>{docInfo.experience}</button>
+
+                    {/* Date Selection */}
+                    <div className='mb-8'>
+                        <h3 className='text-lg font-semibold text-dark mb-4'>Select Date</h3>
+                        <div className='flex gap-3 overflow-x-auto pb-2'>
+                            {docSlots.length > 0 && docSlots.map((item, index) => (
+                                <button
+                                    key={index}
+                                    onClick={() => {
+                                        setSlotIndex(index)
+                                        setSlotTime('')
+                                    }}
+                                    className={`flex-shrink-0 text-center py-4 px-6 rounded-button border-2 transition-all ${
+                                        slotIndex === index 
+                                            ? 'bg-primary text-white border-primary shadow-button' 
+                                            : 'bg-white text-dark border-gray-200 hover:border-primary'
+                                    }`}
+                                >
+                                    <p className='text-xs font-semibold mb-1'>
+                                        {item[0] && daysOfWeek[item[0].datetime.getDay()]}
+                                    </p>
+                                    <p className='text-2xl font-bold'>
+                                        {item[0] && item[0].datetime.getDate()}
+                                    </p>
+                                    <p className='text-xs mt-1'>
+                                        {item[0] && item[0].datetime.toLocaleDateString('en-US', { month: 'short' })}
+                                    </p>
+                                </button>
+                            ))}
+                        </div>
                     </div>
 
-                    <div>
-                        <p className='flex items-center gap-1 text-sm font-medium text-[#262626] mt-3'>
-                            About 
-                            <img className='w-3' src={assets.info_icon} alt="" />
-                        </p>
-                        <p className='text-sm text-gray-600 max-w-[700px] mt-1'>{docInfo.about}</p>
+                    {/* Time Slot Selection */}
+                    <div className='mb-8'>
+                        <h3 className='text-lg font-semibold text-dark mb-4'>Select Time Slot</h3>
+                        <div className='grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3'>
+                            {docSlots.length > 0 && docSlots[slotIndex] && docSlots[slotIndex].map((item, index) => (
+                                <button
+                                    key={index}
+                                    onClick={() => setSlotTime(item.time)}
+                                    className={`p-4 rounded-button border-2 transition-all text-center ${
+                                        item.time === slotTime 
+                                            ? 'bg-primary text-white border-primary shadow-button' 
+                                            : 'bg-white text-dark border-gray-200 hover:border-primary'
+                                    }`}
+                                >
+                                    <p className='font-semibold mb-1'>{item.time}</p>
+                                    <p className={`text-xs ${item.time === slotTime ? 'text-white/80' : 'text-gray-custom'}`}>
+                                        {item.available} slots left
+                                    </p>
+                                </button>
+                            ))}
+                        </div>
                     </div>
 
-                    <p className='text-gray-600 font-medium mt-4'>
-                        Appointment fee: 
-                        <span className='text-gray-800'>{currencySymbol}{docInfo.fees}</span>
-                    </p>
-                </div>
-            </div>
-
-            {/* Booking slots */}
-            <div className='sm:ml-72 sm:pl-4 mt-8 font-medium text-[#565656]'>
-                <p>Booking slots</p>
-                <p className='text-sm text-gray-500 mt-1'>
-                    Available for the next 30 days • 9:00 AM - 7:00 PM • Max 5 people per slot
-                </p>
-
-                <div className='flex gap-3 items-center w-full overflow-x-scroll mt-4'>
-                    {docSlots.length > 0 && docSlots.map((item, index) => (
-                        <div
-                            onClick={() => {
-                                setSlotIndex(index)
-                                setSlotTime('')
-                            }}
-                            key={index}
-                            className={`text-center py-6 min-w-16 rounded-full cursor-pointer ${
-                                slotIndex === index ? 'bg-primary text-white' : 'border border-[#DDDDDD]'
-                            }`}
+                    {/* Book Button */}
+                    <div className='flex justify-center'>
+                        <button 
+                            onClick={bookAppointment} 
+                            className='btn-primary text-base px-12 py-4'
                         >
-                            <p>{item[0] && daysOfWeek[item[0].datetime.getDay()]}</p>
-                            <p>{item[0] && item[0].datetime.getDate()}</p>
-                        </div>
-                    ))}
+                            Confirm Appointment
+                        </button>
+                    </div>
                 </div>
 
-                <div className='flex items-center gap-3 w-full overflow-x-scroll mt-4'>
-                    {docSlots.length > 0 && docSlots[slotIndex] && docSlots[slotIndex].map((item, index) => (
-                        <div key={index} onClick={() => setSlotTime(item.time)} className='flex flex-col'>
-                            <p className={`text-sm font-light flex-shrink-0 px-5 py-2 rounded-full cursor-pointer ${
-                                item.time === slotTime ? 'bg-primary text-white' : 'text-[#949494] border border-[#B4B4B4]'
-                            }`}>
-                                {item.time.toLowerCase()}
-                            </p>
-                            <p className='text-xs text-gray-500 text-center mt-1'>
-                                {item.available} slots left
-                            </p>
-                        </div>
-                    ))}
+                {/* Related Doctors */}
+                <div className='mt-16'>
+                    <RelatedDoctors speciality={docInfo.speciality} docId={docId} />
                 </div>
-
-                <button 
-                    onClick={bookAppointment} 
-                    className='bg-primary text-white text-sm font-light px-20 py-3 rounded-full my-6'
-                >
-                    Book an appointment
-                </button>
             </div>
-
-            {/* Listing Related Doctors */}
-            <RelatedDoctors speciality={docInfo.speciality} docId={docId} />
         </div>
     ) : null
 }
