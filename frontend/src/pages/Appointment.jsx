@@ -240,7 +240,7 @@ const Appointment = () => {
             {/* Booking slots */}
             <div className='sm:ml-72 sm:pl-4 mt-8 font-medium text-[#565656]'>
                 <p>Booking slots</p>
-                <p className='text-sm text-gray-500 mt-1'>Available for the next 30 days • 9:00 AM - 7:00 PM • Max 10 people per slot</p>
+                <p className='text-sm text-gray-500 mt-1'>Available for the next 30 days • 9:00 AM - 7:00 PM • Max 5 people per slot</p>
 
                 <div className='flex gap-3 items-center w-full overflow-x-scroll mt-4'>
                     {docSlots.length > 0 && docSlots.map((item, index) => (
